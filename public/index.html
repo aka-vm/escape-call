@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escape Call</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📞</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1><span>📞</span> Escape Call</h1>
+    <p class="sub">Ring your own phone on a timer to slip out of awkward situations.</p>
+  </header>
+
+  <div id="notConfigured" class="banner hidden">
+    ⚠️ Twilio isn’t configured. Copy <code>config.example.env</code> → <code>.env</code>, fill it in, restart.
+  </div>
+
+  <div class="card">
+    <label class="field">
+      <span class="field-label">Who calls</span>
+      <select id="scenario" class="sel"></select>
+    </label>
+
+    <label class="field">
+      <span class="field-label">Ring which phone</span>
+      <select id="phone" class="sel"></select>
+    </label>
+
+    <div class="field">
+      <span class="field-label">When</span>
+      <div class="chips" id="delayChips">
+        <button class="chip" data-d="0" type="button">Now</button>
+        <button class="chip active" data-d="60" type="button">1 min</button>
+        <button class="chip" data-d="120" type="button">2 min</button>
+        <button class="chip" data-d="300" type="button">5 min</button>
+        <button class="chip" data-d="custom" type="button">Custom…</button>
+        <button class="chip" data-d="at" type="button">At time…</button>
+      </div>
+      <div id="customWrap" class="sub-input hidden">
+        <input id="customSec" class="inp" type="number" min="0" placeholder="seconds" value="90">
+        <span class="inp-suffix">seconds</span>
+      </div>
+      <div id="atWrap" class="sub-input hidden">
+        <input id="atTime" class="inp" type="time" step="1">
+        <span class="inp-suffix">today (your local time)</span>
+      </div>
+    </div>
+
+    <button id="callBtn" class="btn-call" type="button">📞 Call me</button>
+    <div id="status" class="status"></div>
+  </div>
+
+  <footer class="foot">
+    Self-hosted · <a href="https://github.com/aka-vm/escape-call" target="_blank" rel="noopener">source</a> ·
+    one-div embed: <code>&lt;div data-escape-call&gt;&lt;/div&gt;</code> + <code>embed.js</code>
+  </footer>
+
+<script>
+const $ = s => document.querySelector(s);
+let delay = 60;
+
+async function loadConfig(){
+  try{
+    const c = await (await fetch('config')).json();
+    $('#scenario').innerHTML = c.scenarios.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
+    $('#phone').innerHTML    = c.numbers.map(n=>`<option value="${n.id}">📱 ${n.label}</option>`).join('');
+    $('#notConfigured').classList.toggle('hidden', c.configured && c.numbers.length);
+  }catch(e){ $('#status').textContent='⚠️ could not load config'; $('#status').className='status err'; }
+}
+
+$('#delayChips').addEventListener('click', e=>{
+  const b = e.target.closest('.chip'); if(!b) return;
+  [...document.querySelectorAll('.chip')].forEach(c=>c.classList.toggle('active', c===b));
+  const d = b.dataset.d;
+  $('#customWrap').classList.toggle('hidden', d!=='custom');
+  $('#atWrap').classList.toggle('hidden', d!=='at');
+  if(d!=='custom' && d!=='at') delay = parseInt(d,10);
+});
+
+function resolveDelay(){
+  const active = document.querySelector('.chip.active')?.dataset.d;
+  if(active==='custom') return Math.max(0, parseInt($('#customSec').value||'0',10));
+  if(active==='at'){
+    const v = $('#atTime').value; if(!v) return null;
+    const [h,m,s] = v.split(':').map(Number);
+    const now = new Date(), target = new Date();
+    target.setHours(h, m||0, s||0, 0);
+    if(target <= now) target.setDate(target.getDate()+1); // next occurrence
+    return Math.round((target - now)/1000);
+  }
+  return delay;
+}
+
+$('#callBtn').addEventListener('click', async ()=>{
+  const d = resolveDelay();
+  if(d===null){ $('#status').textContent='Pick a time first.'; $('#status').className='status err'; return; }
+  const btn=$('#callBtn'), t=btn.textContent; btn.disabled=true; btn.textContent='Scheduling…';
+  try{
+    const r = await (await fetch('call',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({delay:d, scenario:$('#scenario').value, phone:$('#phone').value})})).json();
+    if(r.ok){ const m = r.delay<60?r.delay+'s':Math.round(r.delay/60)+' min';
+      $('#status').textContent='📞 Your phone will ring in '+m+'.'; $('#status').className='status ok'; }
+    else { $('#status').textContent='⚠️ '+(r.error||'failed'); $('#status').className='status err'; }
+  }catch(e){ $('#status').textContent='⚠️ could not reach server'; $('#status').className='status err'; }
+  btn.disabled=false; btn.textContent=t;
+});
+
+loadConfig();
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escape Call — embed example</title>
+<style>body{font-family:system-ui;background:#0d0f15;color:#e7ebf3;max-width:600px;margin:60px auto;padding:0 20px}</style>
+</head>
+<body>
+  <h1>My dashboard</h1>
+  <p>Somewhere on any page, drop one div + the script:</p>
+
+  <!-- ▼▼▼ the entire integration ▼▼▼ -->
+  <div data-escape-call data-base="http://localhost:8500" data-delay="60" data-scenario="generic"></div>
+  <script src="http://localhost:8500/embed.js"></script>
+  <!-- ▲▲▲ that's it ▲▲▲ -->
+
+  <p style="color:#7e889c;margin-top:24px;font-size:.85rem">
+    Point <code>data-base</code> at wherever <code>server.py</code> runs.
+    Optional: <code>data-delay</code>, <code>data-scenario</code>, <code>data-phone</code>, <code>data-label</code>.
+  </p>
+</body>
+</html>

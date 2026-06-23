@@ -1,0 +1,4 @@
+.env
+scenarios.json
+__pycache__/
+*.pyc

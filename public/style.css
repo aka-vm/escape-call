@@ -1,0 +1,35 @@
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0f15;--card:#161b26;--card2:#212838;--line:#2b3346;--txt:#e7ebf3;--mut:#7e889c;--accent:#5b8cff;--green:#34c9a0;--red:#ff495c}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);
+  max-width:520px;margin:auto;padding:32px 20px 64px;-webkit-font-smoothing:antialiased}
+header{margin-bottom:20px}
+h1{font-size:1.5rem;letter-spacing:-.02em}
+h1 span{filter:saturate(1.2)}
+.sub{color:var(--mut);font-size:.85rem;margin-top:4px}
+.banner{background:rgba(255,73,92,.1);border:1px solid rgba(255,73,92,.25);color:#ff8a96;
+  border-radius:10px;padding:10px 14px;font-size:.82rem;margin-bottom:16px}
+.banner code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.field{display:block;margin-bottom:18px}
+.field-label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);font-weight:700;margin-bottom:8px}
+.sel,.inp{width:100%;height:44px;border-radius:11px;background:var(--card2);color:var(--txt);
+  border:1px solid var(--line);padding:0 13px;font:inherit;font-size:.9rem;appearance:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 15px;border-radius:99px;background:var(--card2);border:1px solid var(--line);
+  color:var(--mut);font:inherit;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--accent);color:var(--txt)}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.sub-input{display:flex;align-items:center;gap:10px;margin-top:10px}
+.sub-input .inp{width:auto;flex:1}
+.inp-suffix{color:var(--mut);font-size:.82rem;white-space:nowrap}
+.btn-call{width:100%;height:52px;margin-top:6px;border:0;border-radius:13px;background:var(--accent);
+  color:#fff;font:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:filter .15s,transform .08s}
+.btn-call:hover:not(:disabled){filter:brightness(1.12)}
+.btn-call:active:not(:disabled){transform:scale(.99)}
+.btn-call:disabled{opacity:.6;cursor:default}
+.status{min-height:20px;margin-top:14px;font-size:.86rem;text-align:center}
+.status.ok{color:var(--green)} .status.err{color:var(--red)}
+.foot{margin-top:22px;text-align:center;color:var(--mut);font-size:.76rem;line-height:1.6}
+.foot a{color:var(--accent);text-decoration:none}
+.foot code{background:var(--card2);padding:1px 5px;border-radius:4px}
+.hidden{display:none}
