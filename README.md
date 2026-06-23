@@ -4,8 +4,10 @@ A tiny self-hosted "fake call" rescue tool. Tap a button → after a delay your 
 rings and a voice plays a chosen line, so you can say *"sorry, I have to take this"*
 and walk out of a boring/awkward situation.
 
+![Escape Call demo](docs/demo.gif)
+
 Two ways to use it:
-- **Full UI** — a standalone page (scenarios, multiple numbers, delay presets / custom / schedule-at-time).
+- **Full UI** — a standalone page (scenarios, multiple numbers, delay presets / custom).
 - **One-div embed** — drop a single `<div>` + `embed.js` into any page to get a button.
 
 Backend is **Python stdlib only** (no Twilio SDK) and calls the Twilio REST API directly.
@@ -21,7 +23,7 @@ Backend is **Python stdlib only** (no Twilio SDK) and calls the Twilio REST API 
    cp config.example.env .env      # then edit .env
    ```
    Required: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`,
-   and destinations via `ESCAPE_NUMBERS="Me:+91…,Work:+1…"` (or `MY_PHONE_NUMBER[_2]`).
+   and destinations via `ESCAPE_NUMBERS="+91…,+91…"` (comma-separated E.164 list).
 3. Run:
    ```bash
    python3 server.py
@@ -54,4 +56,5 @@ Edit `DEFAULT_SCENARIOS` in `server.py`, or drop a `scenarios.json`
 - The browser never sees your auth token; only the server talks to Twilio.
 
 ## License
-See [LICENSE].
+
+Public domain — [Unlicense](LICENSE).
