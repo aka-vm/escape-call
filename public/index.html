@@ -32,19 +32,14 @@
       <span class="field-label">When</span>
       <div class="chips" id="delayChips">
         <button class="chip" data-d="0" type="button">Now</button>
-        <button class="chip active" data-d="60" type="button">1 min</button>
-        <button class="chip" data-d="120" type="button">2 min</button>
-        <button class="chip" data-d="300" type="button">5 min</button>
-        <button class="chip" data-d="custom" type="button">Custom…</button>
-        <button class="chip" data-d="at" type="button">At time…</button>
+        <button class="chip active" data-d="15" type="button">15 secs</button>
+        <button class="chip" data-d="120" type="button">2 mins</button>
+        <button class="chip" data-d="300" type="button">5 mins</button>
+        <button class="chip" data-d="custom" type="button">Custom</button>
       </div>
       <div id="customWrap" class="sub-input hidden">
         <input id="customSec" class="inp" type="number" min="0" placeholder="seconds" value="90">
         <span class="inp-suffix">seconds</span>
-      </div>
-      <div id="atWrap" class="sub-input hidden">
-        <input id="atTime" class="inp" type="time" step="1">
-        <span class="inp-suffix">today (your local time)</span>
       </div>
     </div>
 
@@ -59,7 +54,7 @@
 
 <script>
 const $ = s => document.querySelector(s);
-let delay = 60;
+let delay = 15;
 
 async function loadConfig(){
   try{
@@ -75,27 +70,17 @@ $('#delayChips').addEventListener('click', e=>{
   [...document.querySelectorAll('.chip')].forEach(c=>c.classList.toggle('active', c===b));
   const d = b.dataset.d;
   $('#customWrap').classList.toggle('hidden', d!=='custom');
-  $('#atWrap').classList.toggle('hidden', d!=='at');
-  if(d!=='custom' && d!=='at') delay = parseInt(d,10);
+  if(d!=='custom') delay = parseInt(d,10);
 });
 
 function resolveDelay(){
   const active = document.querySelector('.chip.active')?.dataset.d;
   if(active==='custom') return Math.max(0, parseInt($('#customSec').value||'0',10));
-  if(active==='at'){
-    const v = $('#atTime').value; if(!v) return null;
-    const [h,m,s] = v.split(':').map(Number);
-    const now = new Date(), target = new Date();
-    target.setHours(h, m||0, s||0, 0);
-    if(target <= now) target.setDate(target.getDate()+1); // next occurrence
-    return Math.round((target - now)/1000);
-  }
   return delay;
 }
 
 $('#callBtn').addEventListener('click', async ()=>{
   const d = resolveDelay();
-  if(d===null){ $('#status').textContent='Pick a time first.'; $('#status').className='status err'; return; }
   const btn=$('#callBtn'), t=btn.textContent; btn.disabled=true; btn.textContent='Scheduling…';
   try{
     const r = await (await fetch('call',{method:'POST',headers:{'Content-Type':'application/json'},

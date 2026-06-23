@@ -11,16 +11,15 @@ so you can excuse yourself from an awkward/boring situation.
 
 Required config:
   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
-Destinations (pick one style):
-  ESCAPE_NUMBERS="Me:+91XXXXXXXXXX,Work:+1XXXXXXXXXX"
-  …or MY_PHONE_NUMBER / MY_PHONE_NUMBER_2 / MY_PHONE_NUMBER_3
+Destinations:
+  ESCAPE_NUMBERS="+91XXXXXXXXXX,+91XXXXXXXXXX"   # comma-separated E.164 list (in .env only)
 Optional:
   ESCAPE_VOICE=Polly.Aditi   PORT=8500   ESCAPE_CALL_ENV=/path/to/.env
 
 Run:  python3 server.py
       ESCAPE_CALL_ENV=~/.config/agent/secrets.env python3 server.py   # reuse existing creds
 """
-import os, json, base64, threading, html, urllib.request, urllib.parse
+import os, json, base64, threading, html, urllib.request, urllib.parse, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -60,18 +59,26 @@ def scenarios():
     return DEFAULT_SCENARIOS
 
 
+def mask_number(num):
+    s = num.strip()
+    plus = s.startswith("+")
+    digits = s[1:] if plus else s
+    if len(digits) <= 6:
+        return s
+    return ("+" if plus else "") + digits[:4] + "x" * (len(digits) - 6) + digits[-2:]
+
+
 def numbers(cfg):
     raw = (cfg.get("ESCAPE_NUMBERS") or "").strip()
     out = []
-    if raw:
-        for i, part in enumerate(p for p in raw.split(",") if p.strip()):
-            label, _, num = part.partition(":") if ":" in part else ("Phone " + str(i + 1), "", part)
-            out.append({"id": str(i), "label": label.strip(), "number": num.strip()})
-    else:
-        for key in ("MY_PHONE_NUMBER", "MY_PHONE_NUMBER_2", "MY_PHONE_NUMBER_3"):
-            num = cfg.get(key)
-            if num:
-                out.append({"id": key, "label": "…" + num[-4:], "number": num})
+    for i, part in enumerate(p for p in raw.split(",") if p.strip()):
+        part = part.strip()
+        if ":" in part:
+            _, _, num = part.partition(":")
+            num = num.strip()
+        else:
+            num = part
+        out.append({"id": str(i), "label": mask_number(num), "number": num})
     return out
 
 
@@ -96,9 +103,12 @@ def place_call(cfg, to, message):
         headers={"Authorization": f"Basic {auth}", "Content-Type": "application/x-www-form-urlencoded"})
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
-            print(f"[escape] call queued to ...{to[-4:]} ({r.status})")
+            print(f"[escape] call queued to ...{to[-4:]} ({r.status})", flush=True)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        print(f"[escape] call failed ({e.code}): {body}", flush=True)
     except Exception as e:
-        print(f"[escape] call failed: {e}")
+        print(f"[escape] call failed: {e}", flush=True)
 
 
 class H(BaseHTTPRequestHandler):
