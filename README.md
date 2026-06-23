@@ -1,59 +1,27 @@
 # 📞 Escape Call
 
-A tiny self-hosted "fake call" rescue tool. Tap a button → after a delay your phone
-rings and a voice plays a chosen line, so you can say *"sorry, I have to take this"*
-and walk out of a boring/awkward situation.
+Sometimes you're stuck in a conversation you can't easily leave — not because it's wrong to leave, but because *"let's continue this later"* is just hard to say out loud. Social anxiety, not wanting to seem rude, or simply no graceful exit.
+
+This gives you an out. Schedule a fake incoming call. Your phone rings, you say *"sorry, I have to take this"*, and you're free.
 
 ![Escape Call demo](docs/demo.gif)
 
-Two ways to use it:
-- **Full UI** — a standalone page (scenarios, multiple numbers, delay presets / custom).
-- **One-div embed** — drop a single `<div>` + `embed.js` into any page to get a button.
+## Use it
 
-Backend is **Python stdlib only** (no Twilio SDK) and calls the Twilio REST API directly.
+- **Web** — `python3 server.py` → pick a scenario, phone, delay → tap **Call me**
+- **CLI** — `python3 server.py call --to +91… --delay 0 --scenario boss`
+- **Embed** — one `<div>` + `<script>` drops a button into any page
 
----
+Needs a [Twilio](https://twilio.com) account (free trial works). Python stdlib only — no pip installs.
 
-## Setup
+## Quick start
 
-1. A Twilio account + a Twilio phone number (the caller). Trial works, but trial can
-   only call **verified** numbers and plays a "trial" preamble — upgrade to remove both.
-2. Configure credentials (never commit them):
-   ```bash
-   cp config.example.env .env      # then edit .env
-   ```
-   Required: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`,
-   and destinations via `ESCAPE_NUMBERS="+91…,+91…"` (comma-separated E.164 list).
-3. Run:
-   ```bash
-   python3 server.py
-   # or reuse existing creds elsewhere:
-   ESCAPE_CALL_ENV=~/.config/agent/secrets.env python3 server.py
-   ```
-   Open http://localhost:8500
-
-> Calls/SMS within India need a domestic setup; a US (+1) Twilio number works but
-> forwarding from an Indian mobile bills the forwarded leg at ISD rates.
-
-## Embed it anywhere (one div)
-```html
-<div data-escape-call data-base="https://your-escape-call-host"></div>
-<script src="https://your-escape-call-host/embed.js"></script>
+```bash
+cp config.example.env .env   # fill in TWILIO_* + ESCAPE_NUMBERS
+python3 server.py            # → http://localhost:8500
 ```
-Optional attributes: `data-delay` (seconds), `data-scenario`, `data-phone`, `data-label`.
-See [`examples/embed-example.html`](examples/embed-example.html).
 
-## Customize the lines
-Edit `DEFAULT_SCENARIOS` in `server.py`, or drop a `scenarios.json`
-(`{ "key": "what the caller says", … }`) next to it.
-
-## API
-- `GET  /config` → `{ scenarios[], numbers[], configured }`
-- `POST /call` → `{ delay, scenario, phone }` → schedules the call (delay 0–6h)
-
-## Security
-- Credentials live only in `.env` (gitignored) — **never** in the repo or the client.
-- The browser never sees your auth token; only the server talks to Twilio.
+Full setup, API, embed, CLI, and deploy details → **[DEV.md](DEV.md)**
 
 ## License
 

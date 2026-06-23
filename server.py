@@ -17,9 +17,11 @@ Optional:
   ESCAPE_VOICE=Polly.Aditi   PORT=8500   ESCAPE_CALL_ENV=/path/to/.env
 
 Run:  python3 server.py
+      python3 server.py call [--to +91…] [--delay 15] [--scenario boss]
       ESCAPE_CALL_ENV=~/.config/agent/secrets.env python3 server.py   # reuse existing creds
 """
-import os, json, base64, threading, html, urllib.request, urllib.parse, urllib.error
+import os, sys, json, base64, threading, time, html, argparse
+import urllib.request, urllib.parse, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -82,15 +84,40 @@ def numbers(cfg):
     return out
 
 
-def configured(cfg):
+def twilio_configured(cfg):
     return bool(cfg.get("TWILIO_ACCOUNT_SID") and cfg.get("TWILIO_AUTH_TOKEN")
-                and cfg.get("TWILIO_FROM_NUMBER") and numbers(cfg))
+                and cfg.get("TWILIO_FROM_NUMBER"))
+
+
+def configured(cfg):
+    return twilio_configured(cfg) and bool(numbers(cfg))
+
+
+def resolve_to(cfg, arg=None):
+    if arg:
+        return arg.strip()
+    if cfg.get("ESCAPE_TO"):
+        return cfg["ESCAPE_TO"].strip()
+    nums = numbers(cfg)
+    if nums:
+        return nums[0]["number"]
+    if not sys.stdin.isatty():
+        line = sys.stdin.read().strip()
+        if line:
+            return line.split(",")[0].strip()
+    return None
+
+
+def scenario_message(key):
+    scen = scenarios()
+    return scen.get(key) or scen.get("generic") or next(iter(scen.values()))
 
 
 def place_call(cfg, to, message):
     sid, tok, frm = cfg.get("TWILIO_ACCOUNT_SID"), cfg.get("TWILIO_AUTH_TOKEN"), cfg.get("TWILIO_FROM_NUMBER")
     if not all([sid, tok, frm, to]):
-        print("[escape] missing Twilio config"); return
+        print("[escape] missing Twilio config", flush=True)
+        return False
     voice = cfg.get("ESCAPE_VOICE", "Polly.Aditi")
     safe = html.escape(message)
     twiml = (f'<Response><Pause length="1"/><Say voice="{voice}">{safe}</Say>'
@@ -104,11 +131,14 @@ def place_call(cfg, to, message):
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             print(f"[escape] call queued to ...{to[-4:]} ({r.status})", flush=True)
+            return True
     except urllib.error.HTTPError as e:
         body = e.read().decode(errors="replace")
         print(f"[escape] call failed ({e.code}): {body}", flush=True)
+        return False
     except Exception as e:
         print(f"[escape] call failed: {e}", flush=True)
+        return False
 
 
 class H(BaseHTTPRequestHandler):
@@ -170,14 +200,43 @@ class H(BaseHTTPRequestHandler):
             return self._json(503, {"error": "Twilio not configured (see README)"})
         scen, nums = scenarios(), numbers(cfg)
         delay = max(0, min(int(body.get("delay", 60)), 21600))   # 0..6h
-        msg = scen.get(body.get("scenario", "generic")) or scen.get("generic") or next(iter(scen.values()))
+        msg = scenario_message(body.get("scenario", "generic"))
         pid = str(body.get("phone", nums[0]["id"]))
         to = next((x["number"] for x in nums if x["id"] == pid), nums[0]["number"])
         threading.Timer(delay, place_call, args=(cfg, to, msg)).start()
         return self._json(200, {"ok": True, "delay": delay})
 
 
-if __name__ == "__main__":
+def run_server():
     port = int(load_env().get("PORT", "8500"))
     print(f"Escape Call → http://0.0.0.0:{port}  (configured: {configured(load_env())})")
     ThreadingHTTPServer(("0.0.0.0", port), H).serve_forever()
+
+
+def run_cli(argv):
+    p = argparse.ArgumentParser(prog="server.py call", description="Schedule an escape call")
+    p.add_argument("--to", help="Destination E.164 (else ESCAPE_TO, ESCAPE_NUMBERS, or stdin)")
+    p.add_argument("--delay", type=int, default=15, help="Seconds before calling (default 15)")
+    p.add_argument("--scenario", default="generic", help="Scenario key (default generic)")
+    args = p.parse_args(argv)
+    cfg = load_env()
+    if not twilio_configured(cfg):
+        print("[escape] set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER", file=sys.stderr)
+        sys.exit(1)
+    to = resolve_to(cfg, args.to)
+    if not to:
+        print("[escape] no destination — pass --to, set ESCAPE_TO, ESCAPE_NUMBERS, or pipe a number", file=sys.stderr)
+        sys.exit(1)
+    delay = max(0, min(args.delay, 21600))
+    msg = scenario_message(args.scenario)
+    if delay:
+        print(f"[escape] calling ...{to[-4:]} in {delay}s ({args.scenario})", flush=True)
+        time.sleep(delay)
+    sys.exit(0 if place_call(cfg, to, msg) else 1)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "call":
+        run_cli(sys.argv[2:])
+    else:
+        run_server()
