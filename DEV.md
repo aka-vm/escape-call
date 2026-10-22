@@ -139,25 +139,18 @@ Requires: `pip install playwright && python3 -m playwright install chromium` + `
 - A US (+1) Twilio number calling Indian mobiles works, but the forwarded leg is billed at ISD rates.
 - Voices: `Polly.Aditi` (Indian English, default), `Polly.Kajal-Neural` (better quality), `Polly.Joanna` (US English), `Google.en-IN-Neural2-A` (Indian English, Google). Full list at [Twilio TTS docs](https://www.twilio.com/docs/voice/twiml/say/text-speech).
 
-## Owner environment: Raspberry Pi
+## Deploying on a Raspberry Pi
 
-Tailnet hub at `http://your-pi.your-tailnet.ts.net` (port 80). Twilio creds in `~/.config/agent/secrets.env`. Trial account.
-
-Steps to replace the dashboard's built-in escape-call with this repo:
-
-1. Clone to `~/escape-call`.
-2. **Systemd user service** (plain tailnet port, no HTTPS needed):
+1. Clone the repo, e.g. to `~/escape-call`.
+2. Run it as a systemd user service (a plain tailnet port is fine, no HTTPS needed):
    ```
    ESCAPE_CALL_ENV=~/.config/agent/secrets.env PORT=8500 \
      python3 ~/escape-call/server.py
    ```
-   Reachable at `http://your-pi.your-tailnet.ts.net:8500`. (Ports in use: 8443, 8444.)
-3. **Dashboard embed** in `~/hub/html/index.html` (mirror to `agent/docker/hub/html/index.html`):
+   It's then reachable at `http://<your-pi>.<your-tailnet>.ts.net:8500` from your tailnet.
+3. Optional: embed the button in a dashboard page:
    ```html
-   <div data-escape-call data-base="http://your-pi.your-tailnet.ts.net:8500"></div>
-   <script src="http://your-pi.your-tailnet.ts.net:8500/embed.js"></script>
+   <div data-escape-call data-base="http://<your-pi>.<your-tailnet>.ts.net:8500"></div>
+   <script src="http://<your-pi>.<your-tailnet>.ts.net:8500/embed.js"></script>
    ```
-4. **Remove in-agent copy**: delete `/api/escape-call` route + helpers from `~/control-panel/app.py` and old dashboard markup. Restart `control-panel`.
-5. Verify with one test call.
-
-Debug/screenshot any page: `bash ~/playwright-mcp/shot.sh <url> [out.png]`.
+4. Verify with one test call.
